@@ -5,8 +5,8 @@
 extern DMA_HandleTypeDef hdma_memtomem_dma2_stream1;
 
 //LCD的画笔颜色和背景色	   
-uint16_t POINT_COLOR=0x0000;	//画笔颜色
-uint16_t BACK_COLOR=0xFFFF;  //背景色 
+uint16_t POINT_COLOR = 0x0000;	//画笔颜色
+uint16_t BACK_COLOR = 0xFFFF;  //背景色 
 
 //管理LCD重要参数
 //默认为竖屏
@@ -16,22 +16,22 @@ _lcd_dev lcddev;
 //regval:寄存器值
 void LCD_WR_REG(__IO uint16_t regval)
 {   
-	regval=regval;		//使用-O2优化的时候,必须插入的延时
-	LCD->REG=regval;//写入要写的寄存器序号	 
+	regval = regval;		//使用-O2优化的时候,必须插入的延时
+	LCD->REG = regval;//写入要写的寄存器序号	 
 }
 //写LCD数据
 //data:要写入的值
 void LCD_WR_DATA(__IO uint16_t data)
 {	 
-	data=data;			//使用-O2优化的时候,必须插入的延时
-	LCD->RAM=data;		 
+	data = data;			//使用-O2优化的时候,必须插入的延时
+	LCD->RAM = data;		 
 }
 //读LCD数据
 //返回值:读到的值
 uint16_t LCD_RD_DATA(void)
 {		
 	__IO uint16_t ram;			//防止被优化
-	ram=LCD->RAM;
+	ram = LCD->RAM;
 	return ram;		 
 }					   
 //写寄存器
@@ -58,50 +58,51 @@ uint16_t LCD_ReadReg(uint16_t LCD_Reg)
 //返回值：RGB格式的颜色值
 uint16_t LCD_BGR2RGB(uint16_t c)
 {
-	uint16_t  r,g,b,rgb;   
-	b=(c>>0)&0x1f;
-	g=(c>>5)&0x3f;
-	r=(c>>11)&0x1f;	 
-	rgb=(b<<11)+(g<<5)+(r<<0);		 
-	return(rgb);
+	uint16_t  r, g, b, rgb;   
+	b = (c >> 0) & 0x1f;
+	g = (c >> 5) & 0x3f;
+	r = (c >> 11) & 0x1f;	 
+	rgb = (b << 11) + (g << 5) + (r << 0);		 
+	return (rgb);
 } 
 //当mdk -O1时间优化时需要设置
 //延时i
 void opt_delay(uint8_t i)
 {
-	while(i--);
+	while (i--)
+		;
 }
 //读取个某点的颜色值	 
 //x,y:坐标
 //返回值:此点的颜色
-uint16_t LCD_ReadPoint(uint16_t x,uint16_t y)
+uint16_t LCD_ReadPoint(uint16_t x, uint16_t y)
 {
- 	__IO uint16_t r=0,g=0,b=0;
-	if(x>=lcddev.width||y>=lcddev.height) return 0;	//超过了范围,直接返回		   
-	LCD_SetCursor(x,y);	    
+	__IO uint16_t r = 0, g = 0, b = 0;
+	if (x >= lcddev.width || y >= lcddev.height) return 0;	//超过了范围,直接返回		   
+	LCD_SetCursor(x, y);	    
 	LCD_WR_REG(CMD_WRITE_RAM);      		 				//其他IC发送读GRAM指令  
- 	LCD_RD_DATA();									//dummy Read	   
+	LCD_RD_DATA();									//dummy Read	   
 	opt_delay(2);	  
- 	r=LCD_RD_DATA();  		  						//实际坐标颜色
+	r = LCD_RD_DATA();  		  						//实际坐标颜色
 
 	if (lcddev.id == 0X7783 || lcddev.id == 0X9325 || lcddev.id == 0X4535 || lcddev.id == 0X4531 || lcddev.id == 0XB505 || lcddev.id == 0XC505) return r;	//这几种IC直接返回颜色值
 }			 
 //LCD开启显示
 void LCD_DisplayOn(void)
 {					   
-	LCD_WriteReg(R7,0x0173); 				 	//开启显示
+	LCD_WriteReg(R7, 0x0173); 				 	//开启显示
 }	 
 //LCD关闭显示
 void LCD_DisplayOff(void)
 {	   
-	LCD_WriteReg(R7,0x0);//关闭显示 
+	LCD_WriteReg(R7, 0x0);//关闭显示 
 }   
 //设置光标位置
 //Xpos:横坐标
 //Ypos:纵坐标
 void LCD_SetCursor(uint16_t Xpos, uint16_t Ypos)
 {	 
-	if(lcddev.dir==1)Xpos=lcddev.width-1-Xpos;//横屏其实就是调转x,y坐标
+	if (lcddev.dir == 1)Xpos = lcddev.width - 1 - Xpos;//横屏其实就是调转x,y坐标
 	LCD_WriteReg(lcddev.setxcmd, Xpos);
 	LCD_WriteReg(lcddev.setycmd, Ypos);
 } 		 
@@ -112,61 +113,61 @@ void LCD_SetCursor(uint16_t Xpos, uint16_t Ypos)
 //9320/9325/9328/4531/4535/1505/b505/8989/5408/9341/5310/5510等IC已经实际测试	   	   
 void LCD_Scan_Dir(uint8_t dir)
 {
-	uint16_t regval=0;
-	uint16_t dirreg=0;
+	uint16_t regval = 0;
+	uint16_t dirreg = 0;
 	uint16_t temp;  
-	uint16_t xsize,ysize;
+	uint16_t xsize, ysize;
 
-	switch(dir)
+	switch (dir)
 	{
-		case L2R_U2D://从左到右,从上到下
-			regval|=(1<<5)|(1<<4)|(0<<3); 
-			break;
-		case L2R_D2U://从左到右,从下到上
-			regval|=(0<<5)|(1<<4)|(0<<3); 
-			break;
-		case R2L_U2D://从右到左,从上到下
-			regval|=(1<<5)|(0<<4)|(0<<3);
-			break;
-		case R2L_D2U://从右到左,从下到上
-			regval|=(0<<5)|(0<<4)|(0<<3); 
-			break;	 
-		case U2D_L2R://从上到下,从左到右
-			regval|=(1<<5)|(1<<4)|(1<<3); 
-			break;
-		case U2D_R2L://从上到下,从右到左
-			regval|=(1<<5)|(0<<4)|(1<<3); 
-			break;
-		case D2U_L2R://从下到上,从左到右
-			regval|=(0<<5)|(1<<4)|(1<<3); 
-			break;
-		case D2U_R2L://从下到上,从右到左
-			regval|=(0<<5)|(0<<4)|(1<<3); 
-			break;	 
+	case L2R_U2D://从左到右,从上到下
+		regval |= (1 << 5) | (1 << 4) | (0 << 3); 
+		break;
+	case L2R_D2U://从左到右,从下到上
+		regval |= (0 << 5) | (1 << 4) | (0 << 3); 
+		break;
+	case R2L_U2D://从右到左,从上到下
+		regval |= (1 << 5) | (0 << 4) | (0 << 3);
+		break;
+	case R2L_D2U://从右到左,从下到上
+		regval |= (0 << 5) | (0 << 4) | (0 << 3); 
+		break;	 
+	case U2D_L2R://从上到下,从左到右
+		regval |= (1 << 5) | (1 << 4) | (1 << 3); 
+		break;
+	case U2D_R2L://从上到下,从右到左
+		regval |= (1 << 5) | (0 << 4) | (1 << 3); 
+		break;
+	case D2U_L2R://从下到上,从左到右
+		regval |= (0 << 5) | (1 << 4) | (1 << 3); 
+		break;
+	case D2U_R2L://从下到上,从右到左
+		regval |= (0 << 5) | (0 << 4) | (1 << 3); 
+		break;	 
 	}
 
-	dirreg=0X03;
-	regval|=1<<12;  
+	dirreg = 0X03;
+	regval |= 1 << 12;  
 		
-	LCD_WriteReg(dirreg,regval);
+	LCD_WriteReg(dirreg, regval);
 }     
 //画点
 //x,y:坐标
 //POINT_COLOR:此点的颜色
-void LCD_DrawPoint(uint16_t x,uint16_t y)
+void LCD_DrawPoint(uint16_t x, uint16_t y)
 {
-	LCD_SetCursor(x,y);		//设置光标位置 
+	LCD_SetCursor(x, y);		//设置光标位置 
 	LCD->REG = CMD_WRITE_RAM;	//开始写入GRAM
-	LCD->RAM=POINT_COLOR; 
+	LCD->RAM = POINT_COLOR; 
 }
 //快速画点
 //x,y:坐标
 //color:颜色
-void LCD_Fast_DrawPoint(uint16_t x,uint16_t y,uint16_t color)
+void LCD_Fast_DrawPoint(uint16_t x, uint16_t y, uint16_t color)
 {	   
- 	if(lcddev.dir==1) x=lcddev.width-1-x;//横屏其实就是调转x,y坐标
-	LCD_WriteReg(lcddev.setxcmd,x);
-	LCD_WriteReg(lcddev.setycmd,y);		 
+	if (lcddev.dir == 1) x = lcddev.width - 1 - x;//横屏其实就是调转x,y坐标
+	LCD_WriteReg(lcddev.setxcmd, x);
+	LCD_WriteReg(lcddev.setycmd, y);		 
 
 	LCD->REG = CMD_WRITE_RAM;
 	LCD->RAM = color; 
@@ -177,23 +178,24 @@ void LCD_Fast_DrawPoint(uint16_t x,uint16_t y,uint16_t color)
 //dir:0,竖屏；1,横屏
 void LCD_Display_Dir(uint8_t dir)
 {
-	if(dir==0)			//竖屏
+	if (dir == 0)			//竖屏
 	{
-		lcddev.dir=0;	//竖屏
-		lcddev.width=240;
-		lcddev.height=320;
+		lcddev.dir = 0;	//竖屏
+		lcddev.width = 240;
+		lcddev.height = 320;
 
-	 	lcddev.setxcmd=R32;
-		lcddev.setycmd=R33;  
+		lcddev.setxcmd = R32;
+		lcddev.setycmd = R33;  
 
-	}else 				//横屏
+	}
+	else 				//横屏
 	{	  				
-		lcddev.dir=1;	//横屏
-		lcddev.width=320;
-		lcddev.height=240;
+		lcddev.dir = 1;	//横屏
+		lcddev.width = 320;
+		lcddev.height = 240;
 
-	 	lcddev.setxcmd=R33;
-		lcddev.setycmd=R32;  
+		lcddev.setxcmd = R33;
+		lcddev.setycmd = R32;  
 	} 
 	LCD_Scan_Dir(DFT_SCAN_DIR);	//默认扫描方向
 }	 
@@ -202,11 +204,11 @@ void LCD_Display_Dir(uint8_t dir)
 //width,height:窗口宽度和高度,必须大于0!!
 //窗体大小:width*height.
 //68042,横屏时不支持窗口设置!! 
-void LCD_Set_Window(uint16_t sx,uint16_t sy,uint16_t width,uint16_t height)
+void LCD_Set_Window(uint16_t sx, uint16_t sy, uint16_t width, uint16_t height)
 {   
-	uint16_t hsaval,heaval,vsaval,veaval; 
-	width=sx+width-1;
-	height=sy+height-1;
+	uint16_t hsaval, heaval, vsaval, veaval; 
+	width = sx + width - 1;
+	height = sy + height - 1;
 	
 	if (lcddev.dir == 1)//横屏
 	{
@@ -236,7 +238,7 @@ void LCD_Set_Window(uint16_t sx,uint16_t sy,uint16_t width,uint16_t height)
 //在其他型号的驱动芯片上没有测试! 
 void LCD_Init(void)
 { 	
-	__IO uint32_t i=0;
+	__IO uint32_t i = 0;
 
 	/*
 	SRAM_HandleTypeDef LCD_FSMC_Handler;
@@ -339,7 +341,7 @@ void LCD_Init(void)
 	HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);	//初始化
 
 	Delay_ms(50); // delay 50 ms 
- 	LCD_WriteReg(0x0000,0x0001);
+	LCD_WriteReg(0x0000, 0x0001);
 	Delay_ms(50); // delay 50 ms 
 
 	lcddev.id = LCD_ReadReg(0x0000);   
@@ -406,13 +408,13 @@ void LCD_Clear(uint16_t Color)
 {   
 	LCD_Set_Window(0, 0, lcddev.width, lcddev.height);
 	LCD->REG = CMD_WRITE_RAM;     		//开始写入GRAM	 	  
-	for(uint32_t i = 0; i < lcddev.width * lcddev.height; i++)
+	for (uint32_t i = 0; i < lcddev.width * lcddev.height; i++)
 	{
 		LCD->RAM = Color;	
 	}
 }  
 
-void LCD_ColorFill(uint16_t PosX,uint16_t PosY,uint16_t Width,uint16_t Height,uint16_t Color)
+void LCD_ColorFill(uint16_t PosX, uint16_t PosY, uint16_t Width, uint16_t Height, uint16_t Color)
 {          
 	LCD_Set_Window(PosX, PosY, Width, Height);
 	LCD->REG = CMD_WRITE_RAM;
@@ -423,7 +425,7 @@ void LCD_ColorFill(uint16_t PosX,uint16_t PosY,uint16_t Width,uint16_t Height,ui
 		 
 }  
 
-void LCD_DrawPicture(uint16_t PosX, uint16_t PosY, uint16_t Width, uint16_t Height,uint16_t *Color_Buffer)
+void LCD_DrawPicture(uint16_t PosX, uint16_t PosY, uint16_t Width, uint16_t Height, uint16_t *Color_Buffer)
 {  
 	LCD_Set_Window(PosX, PosY, Width, Height);
 	LCD->REG = CMD_WRITE_RAM;
@@ -437,34 +439,34 @@ void LCD_DrawPicture(uint16_t PosX, uint16_t PosY, uint16_t Width, uint16_t Heig
 void LCD_DrawLine(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2)
 {
 	uint16_t t; 
-	int xerr=0,yerr=0,delta_x,delta_y,distance; 
-	int incx,incy,uRow,uCol; 
-	delta_x=x2-x1; //计算坐标增量 
-	delta_y=y2-y1; 
-	uRow=x1; 
-	uCol=y1; 
-	if(delta_x>0)incx=1; //设置单步方向 
-	else if(delta_x==0)incx=0;//垂直线 
-	else {incx=-1;delta_x=-delta_x;} 
-	if(delta_y>0)incy=1; 
-	else if(delta_y==0)incy=0;//水平线 
-	else{incy=-1;delta_y=-delta_y;} 
-	if( delta_x>delta_y)distance=delta_x; //选取基本增量坐标轴 
-	else distance=delta_y; 
-	for(t=0;t<=distance+1;t++ )//画线输出 
+	int xerr = 0, yerr = 0, delta_x, delta_y, distance; 
+	int incx, incy, uRow, uCol; 
+	delta_x = x2 - x1; //计算坐标增量 
+	delta_y = y2 - y1; 
+	uRow = x1; 
+	uCol = y1; 
+	if (delta_x > 0)incx = 1; //设置单步方向 
+	else if (delta_x == 0)incx = 0;//垂直线 
+	else {incx = -1; delta_x = -delta_x; } 
+	if (delta_y > 0)incy = 1; 
+	else if (delta_y == 0)incy = 0;//水平线 
+	else{incy = -1; delta_y = -delta_y; } 
+	if (delta_x > delta_y)distance = delta_x; //选取基本增量坐标轴 
+	else distance = delta_y; 
+	for (t = 0; t <= distance + 1; t++)//画线输出 
 	{  
-		LCD_DrawPoint(uRow,uCol);//画点 
-		xerr+=delta_x ; 
-		yerr+=delta_y ; 
-		if(xerr>distance) 
+		LCD_DrawPoint(uRow, uCol);//画点 
+		xerr += delta_x; 
+		yerr += delta_y; 
+		if (xerr > distance) 
 		{ 
-			xerr-=distance; 
-			uRow+=incx; 
+			xerr -= distance; 
+			uRow += incx; 
 		} 
-		if(yerr>distance) 
+		if (yerr > distance) 
 		{ 
-			yerr-=distance; 
-			uCol+=incy; 
+			yerr -= distance; 
+			uCol += incy; 
 		} 
 	}  
 }    
@@ -472,36 +474,36 @@ void LCD_DrawLine(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2)
 //(x1,y1),(x2,y2):矩形的对角坐标
 void LCD_DrawRectangle(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2)
 {
-	LCD_DrawLine(x1,y1,x2,y1);
-	LCD_DrawLine(x1,y1,x1,y2);
-	LCD_DrawLine(x1,y2,x2,y2);
-	LCD_DrawLine(x2,y1,x2,y2);
+	LCD_DrawLine(x1, y1, x2, y1);
+	LCD_DrawLine(x1, y1, x1, y2);
+	LCD_DrawLine(x1, y2, x2, y2);
+	LCD_DrawLine(x2, y1, x2, y2);
 }
 //在指定位置画一个指定大小的圆
 //(x,y):中心点
 //r    :半径
-void LCD_Draw_Circle(uint16_t x0,uint16_t y0,uint8_t r)
+void LCD_Draw_Circle(uint16_t x0, uint16_t y0, uint8_t r)
 {
-	int a,b;
+	int a, b;
 	int di;
-	a=0;b=r;	  
-	di=3-(r<<1);             //判断下个点位置的标志
-	while(a<=b)
+	a = 0; b = r;	  
+	di = 3 - (r << 1);             //判断下个点位置的标志
+	while (a <= b)
 	{
-		LCD_DrawPoint(x0+a,y0-b);             //5
- 		LCD_DrawPoint(x0+b,y0-a);             //0           
-		LCD_DrawPoint(x0+b,y0+a);             //4               
-		LCD_DrawPoint(x0+a,y0+b);             //6 
-		LCD_DrawPoint(x0-a,y0+b);             //1       
- 		LCD_DrawPoint(x0-b,y0+a);             
-		LCD_DrawPoint(x0-a,y0-b);             //2             
-  		LCD_DrawPoint(x0-b,y0-a);             //7     	         
+		LCD_DrawPoint(x0 + a, y0 - b);             //5
+		LCD_DrawPoint(x0 + b, y0 - a);             //0           
+		LCD_DrawPoint(x0 + b, y0 + a);             //4               
+		LCD_DrawPoint(x0 + a, y0 + b);             //6 
+		LCD_DrawPoint(x0 - a, y0 + b);             //1       
+		LCD_DrawPoint(x0 - b, y0 + a);             
+		LCD_DrawPoint(x0 - a, y0 - b);             //2             
+		LCD_DrawPoint(x0 - b, y0 - a);             //7     	         
 		a++;
 		//使用Bresenham算法画圆     
-		if(di<0)di +=4*a+6;	  
+		if (di < 0)di += 4*a + 6;	  
 		else
 		{
-			di+=10+4*(a-b);   
+			di += 10 + 4*(a - b);   
 			b--;
 		} 						    
 	}
@@ -511,31 +513,31 @@ void LCD_Draw_Circle(uint16_t x0,uint16_t y0,uint8_t r)
 //num:要显示的字符:" "--->"~"
 //size:字体大小 12/16/24
 //mode:叠加方式(1)还是非叠加方式(0)
-void LCD_ShowChar(uint16_t x,uint16_t y,uint8_t num,uint8_t size,uint8_t mode)
+void LCD_ShowChar(uint16_t x, uint16_t y, uint8_t num, uint8_t size, uint8_t mode)
 {  							  
-    uint8_t temp,t1,t;
-	uint16_t y0=y;
-	uint8_t csize=(size/8+((size%8)?1:0))*(size/2);		//得到字体一个字符对应点阵集所占的字节数	
+	uint8_t temp, t1, t;
+	uint16_t y0 = y;
+	uint8_t csize = (size / 8 + ((size % 8) ? 1 : 0))*(size / 2);		//得到字体一个字符对应点阵集所占的字节数	
 	//设置窗口		   
-	num=num-' ';//得到偏移后的值
-	for(t=0;t<csize;t++)
+	num = num - ' ';//得到偏移后的值
+	for (t = 0; t < csize; t++)
 	{   
-		if(size==12)temp=asc2_1206[num][t]; 	 	//调用1206字体
-		else if(size==16)temp=asc2_1608[num][t];	//调用1608字体
-		else if(size==24)temp=asc2_2412[num][t];	//调用2412字体
+		if (size == 12)temp = asc2_1206[num][t]; 	 	//调用1206字体
+		else if (size == 16)temp = asc2_1608[num][t];	//调用1608字体
+		else if (size == 24)temp = asc2_2412[num][t];	//调用2412字体
 		else return;								//没有的字库
-		for(t1=0;t1<8;t1++)
+		for (t1 = 0; t1 < 8; t1++)
 		{			    
-			if(temp&0x80)LCD_Fast_DrawPoint(x,y,POINT_COLOR);
-			else if(mode==0)LCD_Fast_DrawPoint(x,y,BACK_COLOR);
-			temp<<=1;
+			if (temp & 0x80)LCD_Fast_DrawPoint(x, y, POINT_COLOR);
+			else if (mode == 0)LCD_Fast_DrawPoint(x, y, BACK_COLOR);
+			temp <<= 1;
 			y++;
-			if(y>=lcddev.height)return;		//超区域了
-			if((y-y0)==size)
+			if (y >= lcddev.height)return;		//超区域了
+			if ((y - y0) == size)
 			{
-				y=y0;
+				y = y0;
 				x++;
-				if(x>=lcddev.width)return;	//超区域了
+				if (x >= lcddev.width)return;	//超区域了
 				break;
 			}
 		}  	 
@@ -543,10 +545,10 @@ void LCD_ShowChar(uint16_t x,uint16_t y,uint8_t num,uint8_t size,uint8_t mode)
 }   
 //m^n函数
 //返回值:m^n次方.
-uint32_t LCD_Pow(uint8_t m,uint8_t n)
+uint32_t LCD_Pow(uint8_t m, uint8_t n)
 {
-	uint32_t result=1;	 
-	while(n--)result*=m;    
+	uint32_t result = 1;	 
+	while (n--)result *= m;    
 	return result;
 }			 
 //显示数字,高位为0,则不显示
@@ -555,23 +557,24 @@ uint32_t LCD_Pow(uint8_t m,uint8_t n)
 //size:字体大小
 //color:颜色 
 //num:数值(0~4294967295);	 
-void LCD_ShowNum(uint16_t x,uint16_t y,uint32_t num,uint8_t len,uint8_t size)
+void LCD_ShowNum(uint16_t x, uint16_t y, uint32_t num, uint8_t len, uint8_t size)
 {         	
-	uint8_t t,temp;
-	uint8_t enshow=0;						   
-	for(t=0;t<len;t++)
+	uint8_t t, temp;
+	uint8_t enshow = 0;						   
+	for (t = 0; t < len; t++)
 	{
-		temp=(num/LCD_Pow(10,len-t-1))%10;
-		if(enshow==0&&t<(len-1))
+		temp = (num / LCD_Pow(10, len - t - 1)) % 10;
+		if (enshow == 0&&t < (len - 1))
 		{
-			if(temp==0)
+			if (temp == 0)
 			{
-				LCD_ShowChar(x+(size/2)*t,y,' ',size,0);
+				LCD_ShowChar(x + (size / 2)*t, y, ' ', size, 0);
 				continue;
-			}else enshow=1; 
+			}
+			else enshow = 1; 
 		 	 
 		}
-	 	LCD_ShowChar(x+(size/2)*t,y,temp+'0',size,0); 
+		LCD_ShowChar(x + (size / 2)*t, y, temp + '0', size, 0); 
 	}
 } 
 //显示数字,高位为0,还是显示
@@ -583,24 +586,25 @@ void LCD_ShowNum(uint16_t x,uint16_t y,uint32_t num,uint8_t len,uint8_t size)
 //[7]:0,不填充;1,填充0.
 //[6:1]:保留
 //[0]:0,非叠加显示;1,叠加显示.
-void LCD_ShowxNum(uint16_t x,uint16_t y,uint32_t num,uint8_t len,uint8_t size,uint8_t mode)
+void LCD_ShowxNum(uint16_t x, uint16_t y, uint32_t num, uint8_t len, uint8_t size, uint8_t mode)
 {  
-	uint8_t t,temp;
-	uint8_t enshow=0;						   
-	for(t=0;t<len;t++)
+	uint8_t t, temp;
+	uint8_t enshow = 0;						   
+	for (t = 0; t < len; t++)
 	{
-		temp=(num/LCD_Pow(10,len-t-1))%10;
-		if(enshow==0&&t<(len-1))
+		temp = (num / LCD_Pow(10, len - t - 1)) % 10;
+		if (enshow == 0&&t < (len - 1))
 		{
-			if(temp==0)
+			if (temp == 0)
 			{
-				if(mode&0X80)LCD_ShowChar(x+(size/2)*t,y,'0',size,mode&0X01);  
-				else LCD_ShowChar(x+(size/2)*t,y,' ',size,mode&0X01);  
- 				continue;
-			}else enshow=1; 
+				if (mode & 0X80)LCD_ShowChar(x + (size / 2)*t, y, '0', size, mode & 0X01);  
+				else LCD_ShowChar(x + (size / 2)*t, y, ' ', size, mode & 0X01);  
+				continue;
+			}
+			else enshow = 1; 
 		 	 
 		}
-	 	LCD_ShowChar(x+(size/2)*t,y,temp+'0',size,mode&0X01); 
+		LCD_ShowChar(x + (size / 2)*t, y, temp + '0', size, mode & 0X01); 
 	}
 } 
 //显示字符串
@@ -608,19 +612,19 @@ void LCD_ShowxNum(uint16_t x,uint16_t y,uint32_t num,uint8_t len,uint8_t size,ui
 //width,height:区域大小  
 //size:字体大小
 //*p:字符串起始地址		  
-void LCD_ShowString(uint16_t x,uint16_t y,uint16_t width,uint16_t height,uint8_t size,uint8_t *p)
+void LCD_ShowString(uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint8_t size, uint8_t *p)
 {         
-	uint8_t x0=x;
-	width+=x;
-	height+=y;
-    while((*p<='~')&&(*p>=' '))//判断是不是非法字符!
-    {       
-        if(x>=width){x=x0;y+=size;}
-        if(y>=height)break;//退出
-        LCD_ShowChar(x,y,*p,size,0);
-        x+=size/2;
-        p++;
-    }  
+	uint8_t x0 = x;
+	width += x;
+	height += y;
+	while ((*p <= '~')&&(*p >= ' '))//判断是不是非法字符!
+	{       
+		if (x >= width){x = x0; y += size; }
+		if (y >= height)break;//退出
+		LCD_ShowChar(x, y, *p, size, 0);
+		x += size / 2;
+		p++;
+	}  
 }
 
 /*

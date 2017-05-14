@@ -49,7 +49,7 @@ void AD9833_Init(void)
 	//	Com_Data.BITS.OPBITEN = 1;
 	Com_Data.BITS.MODE = 0;
 
-	Delay_ms(10);
+	Delay_ms(5);
 	WriteReg(Com_Data.VALUE);
 
 	WriteReg(0xC000); //œ‡Œªºƒ¥Ê∆˜÷√¡„

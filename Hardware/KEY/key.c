@@ -4,8 +4,6 @@ uint32_t frequency;
 
 void Key_Init(void)
 {
-	frequency = 1000;
-
 	GPIO_InitTypeDef GPIO_InitStructure;
 	GPIO_InitStructure.Pin = GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6;
 	GPIO_InitStructure.Mode = GPIO_MODE_IT_FALLING;
@@ -54,27 +52,3 @@ void EXTI9_5_IRQHandler(void)
 	
 }
 
-
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-{
-	Delay_ms(50);
-
-	switch (GPIO_Pin)
-	{
-	case GPIO_PIN_3:
-		if (frequency >= 6000000) break;
-			frequency += 100;
-			AD9833_WriteFreq(frequency);
-		break;
-
-	case GPIO_PIN_4:
-		if (frequency <= 100) break;
-			frequency -= 100;
-			AD9833_WriteFreq(frequency);
-		break;
-
-	case GPIO_PIN_6:
-			AD9833_SwitchMode();
-		break;
-	}
-}

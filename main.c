@@ -1,6 +1,7 @@
 #include "main.h"
 #include "Hardware\LCD\lcd.h"
 
+uint32_t frequency = 1000;
 uint16_t ADC_Result[100];
 
 void SysTick_Handler(void)
@@ -31,80 +32,138 @@ int main(void)
 	GPIO_InitStructure.Speed = GPIO_SPEED_HIGH;
 	GPIO_InitStructure.Pull = GPIO_NOPULL;
 	HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
-	
-	GPIO_InitStructure.Speed = GPIO_SPEED_MEDIUM;
-	GPIO_InitStructure.Pin = GPIO_PIN_0;
-	HAL_GPIO_Init(GPIOB, &GPIO_InitStructure);
 
-	HAL_UART_Receive_DMA(&huart1, Rx_Data, UART1_RX_BUFFER_SIZE);
+	//HAL_UART_Receive_DMA(&huart1, Rx_Data, UART1_RX_BUFFER_SIZE);
 
 	for (;;)
 	{
+		/*
 		if (UART_RecvEnd)
 		{
 			HAL_UART_Transmit_DMA(&huart1, Rx_Data, strlen(Rx_Data));
 			UART_RecvEnd = 0;
 			Rx_Len = 0; 
-		}
+		}*/
 
 		//uint8_t* str = DS18B20_GetTemperature();
-		
-		Sweep_Frequency();
-
-		//LCD_Set_Window(0, 0, 240, 24);
-		
+		//Sweep_Frequency();
+		GPIOA->BSRR = GPIO_PIN_5;
+		Delay_ms(100);
+		GPIOA->BSRR = (uint32_t)GPIO_PIN_5 << 16U;
+		Delay_ms(100);
 	}
 }
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	Delay_ms(5);
+	if (HAL_GPIO_ReadPin(GPIOE, GPIO_Pin)) return;
+
+	switch (GPIO_Pin)
+	{
+	case GPIO_PIN_3:
+		if (frequency >= 6000000) break;
+		frequency += 100;
+		AD9833_WriteFreq(frequency);
+		break;
+
+	case GPIO_PIN_4:
+		if (frequency <= 100) break;
+		frequency -= 100;
+		AD9833_WriteFreq(frequency);
+		break;
+
+	case GPIO_PIN_5:
+		AD9833_SwitchMode();
+		break;
+
+	case GPIO_PIN_6:
+		Sweep_Frequency();
+		AD9833_WriteFreq(frequency);
+		break;
+	}
+	LCD_ShowString(10, 10, 100, 16, 16, "DDS Frequency");
+	LCD_ShowString(165, 10, 32, 16, 16, "Hz");
+	LCD_ShowNum(120, 10, frequency, 5, 16);
+}
+
 
 static void Sweep_Frequency(void)
 {
-	uint16_t x, y, i;
+	uint16_t x, y, i, j, freq;
 	__IO uint16_t ADC_Value = 0;
-
-	LCD_DrawLine(8, 216, 313, 216);
-	LCD_DrawLine(8, 4, 313, 4);
-	LCD_DrawLine(8, 4, 8, 216);
-	LCD_DrawLine(313, 4, 313, 216);
+	uint32_t ADC_ValueSum = 0;
+	
+	LCD_Clear(BACK_COLOR);
+	LCD_DrawLine(39, 216, 315, 216);
+	LCD_DrawLine(39, 4, 315, 4);
+	LCD_DrawLine(39, 4, 39, 216);
+	LCD_DrawLine(315, 4, 315, 216);
 
 	POINT_COLOR = YELLOW;
-	for (i = 48; i < 305; i+= 42)
-	{
-		LCD_DrawLine(i, 5, i, 215);
-	}
-
-	for (i = 48; i < 216; i += 42)
-	{
-		LCD_DrawLine(8, i, 313, i);
-	}
+	for (i = 94; i < 305; i+= 55)	LCD_DrawLine(i, 5, i, 215);
+	for (i = 48; i < 216; i += 42)	LCD_DrawLine(40, i, 314, i);
 
 	POINT_COLOR = WHITE;
-
-	HAL_ADC_Start_DMA(&hadc1, &ADC_Value, 1);
+	LCD_ShowString(3, 0, 32, 16, 16, "  0");
+	LCD_ShowString(3, 42, 32, 16, 16, "-10");
+	LCD_ShowString(3, 84, 32, 16, 16, "-20");
+	LCD_ShowString(3, 126, 32, 16, 16, "-30");
+	LCD_ShowString(3, 168, 32, 16, 16, "-40");
+	LCD_ShowString(3, 210, 32, 16, 16, "-50");
 
 	for (i = 0; i < 100; i++)
 	{
-		AD9833_WriteFreq(i * 100 + 100);
-		Delay_ms(50);
+		ADC_ValueSum = 0;
+
+		freq = i * 100 + 100;
+		AD9833_WriteFreq(freq);
+
+		Delay_ms(40);
+		HAL_ADC_Start_DMA(&hadc1, &ADC_Value, 1);
+		Delay_ms(1);
 		//printf("%u\n", ADC_Value);
 
-		ADC_Result[i] = ADC_Value / 1.24121f;
-		x = i * 3 + 9;
-		y = (4096 - ADC_Value) * 0.05127f + 6;
+		for (j = 0; j < (1 << 14); j++)
+		{
+			ADC_ValueSum += ADC_Value;
+			Delay_us(1); 
+		}
+		ADC_ValueSum >>= 14;
+		
+
+		ADC_Result[i] = ADC_ValueSum * 1.2756f;
+
+		float dB = 20.0f * log10(ADC_Result[i] / 810.0f); //»ù×¼µçÑ¹
+		printf("%u %u HZ dB: %f\n", ADC_ValueSum, i * 100 + 100, dB);
+		
+		x = 137 * log10(freq / 100) + 40;
+		y = -4.22f * dB + 6;
 
 		LCD_Fast_DrawPoint(x, y, RED);
 		LCD_Fast_DrawPoint(x+1, y, RED);
 		LCD_Fast_DrawPoint(x-1, y, RED);
 		LCD_Fast_DrawPoint(x, y+1, RED);
 		LCD_Fast_DrawPoint(x, y-1, RED);
-		LCD_ShowNum(280, 220, ADC_Result[i], 4, 16);
 		
-		GPIOB->BSRR = GPIO_PIN_0;
-		Delay_ms(50);
-		GPIOB->BSRR = (uint32_t)GPIO_PIN_0 << 16U;
+		LCD_ShowNum(275, 220, ADC_Result[i], 5, 16);
+		LCD_ShowString(256, 220, 20, 16, 16, "Vp");
+		
+		HAL_ADC_Stop_DMA(&hadc1);
+		Delay_ms(25);
 	}
+ 
+	Delay_ms(1000);
+	//LCD_ColorFill(9, 5, 304, 211, BACK_COLOR);
+	LCD_ShowNum(180, 20, ADC_Result[9], 5, 16);
+	LCD_ShowNum(180, 40, ADC_Result[33], 5, 16);
+	LCD_ShowNum(180, 60, ADC_Result[39], 5, 16);
+	LCD_ShowNum(180, 80, ADC_Result[49], 5, 16);
 
-	HAL_ADC_Stop_DMA(&hadc1);
-	LCD_ColorFill(9, 5, 300, 211, BACK_COLOR);
+	while (HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_6))
+	{
+		Delay_ms(50);
+	}
+	LCD_Clear(BACK_COLOR);
 }
 
 static void SystemClock_Config(void)
