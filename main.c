@@ -53,6 +53,7 @@ int main(void)
 		Delay_ms(100);
 	}
 }
+
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 	Delay_ms(5);
@@ -61,7 +62,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	switch (GPIO_Pin)
 	{
 	case GPIO_PIN_3:
-		if (frequency >= 6000000) break;
+		if (frequency >= 5000000) break;
 		frequency += 100;
 		AD9833_WriteFreq(frequency);
 		break;
@@ -131,20 +132,23 @@ static void Sweep_Frequency(void)
 		ADC_ValueSum >>= 14;
 		
 
-		ADC_Result[i] = ADC_ValueSum * 1.2756f;
+		ADC_Result[i] = ADC_ValueSum * 1.2303f;
 
-		float dB = 20.0f * log10(ADC_Result[i] / 810.0f); //基准电压
+		float dB = 20.0f * log10(ADC_Result[i] / 1465.0f); //基准电压
 		printf("%u %u HZ dB: %f\n", ADC_ValueSum, i * 100 + 100, dB);
 		
-		x = 137 * log10(freq / 100) + 40;
-		y = -4.22f * dB + 6;
+		if (ADC_ValueSum != 0)
+		{
+			x = 137 * log10(freq / 100) + 40;
+			y = -3.5f * dB + 6;
 
-		LCD_Fast_DrawPoint(x, y, RED);
-		LCD_Fast_DrawPoint(x+1, y, RED);
-		LCD_Fast_DrawPoint(x-1, y, RED);
-		LCD_Fast_DrawPoint(x, y+1, RED);
-		LCD_Fast_DrawPoint(x, y-1, RED);
-		
+			LCD_Fast_DrawPoint(x, y, RED);
+			LCD_Fast_DrawPoint(x + 1, y, RED);
+			LCD_Fast_DrawPoint(x - 1, y, RED);
+			LCD_Fast_DrawPoint(x, y + 1, RED);
+			LCD_Fast_DrawPoint(x, y - 1, RED);
+		}
+
 		LCD_ShowNum(275, 220, ADC_Result[i], 5, 16);
 		LCD_ShowString(256, 220, 20, 16, 16, "Vp");
 		
